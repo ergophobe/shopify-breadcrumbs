@@ -1,4 +1,4 @@
-<!-- /snippets/breadcrumb.liquid -->
+<!-- /snippets/breadcrumb-based-on-nav.liquid.liquid -->
 {%- comment -%}
   Documentation - http://docs.shopify.com/support/your-website/navigation/creating-a-breadcrumb-navigation
 {%- endcomment -%}
@@ -40,10 +40,9 @@
   You might think we would match handles to handles, but we don't. Shopify creates nested menus based
   on the parent item having the exact same label as the child item and converts that to a handle.
   {%endcomment%}
- 
 {%- assign level = 1 -%}
 {%- for link in linklists.main-menu.links -%}
-  {%- assign link_handle = link.title | handle -%}
+  {%- assign link_handle = link.title | handleize -%}
   {%- assign link_titles = link_titles | append: link.title | append: '|' -%}
   {%- assign link_urls = link_urls | append: link.url | append: '|' -%}
   {%- assign link_levels = link_levels | append: level | append: '|'  -%}
@@ -53,12 +52,11 @@
   {%- if linklist_titles contains link_handle -%}
  
       {%comment%} GET CHILDREN    {%endcomment%}
- 
     {%- for clink in linklists[link_handle].links -%}
       {%- if forloop.first == true -%}
         {%- assign level = level | plus: 1 -%}
       {%- endif -%}
-      {% assign clink_handle = clink.title | handle %}
+      {% assign clink_handle = clink.title | handleize %}
       {%- assign link_titles = link_titles | append: clink.title | append: '|' -%}
       {%- assign link_urls = link_urls | append: clink.url | append: '|' -%}
       {%- assign link_levels = link_levels | append: level | append: '|'  -%}
@@ -74,7 +72,7 @@
               {%- if forloop.first == true -%}
                 {%- assign level = level | plus: 1 -%}
               {%- endif -%}
-              {% assign gclink_handle = gclink.title | handle %}
+              {% assign gclink_handle = gclink.title | handleize %}
               {%- assign link_titles = link_titles | append: gclink.title | append: '|' -%}
               {%- assign link_urls = link_urls | append: gclink.url | append: '|' -%}
               {%- assign link_levels = link_levels | append: level | append: '|'  -%}
@@ -131,7 +129,6 @@
     {% break %}
   {%- endif -%}
 {%- endfor -%}
- 
 {%- comment -%} LEVEL 2: TWO DOWN FROM THE TOP
   Next level. If we found something, we can save a lot of processing. Otherwise, 
   we need to scan everything on this level 
@@ -152,24 +149,31 @@
       {%- endif -%}
     {%- endif -%}
   {%- endfor -%}
-   
 {%- comment -%} ELSE we have a parent handle. We need its array index to find its other data {%- endcomment -%}  
 {%- else -%}
   {%- for list_handle in lhandles -%}
     {%- if list_handle == bc3_parent_list_handle -%}
       {% assign bc2_list_handle = list_handle %}
-      {%- assign bc2_parent_list_handle = lparents[forloop.index0] -%}
       {%- assign bc2_list_title = ltitles[forloop.index0] -%}
-      {%- comment -%} we have the handle of bc2's parent, so now we get the parent links, find where title matches parent title, then we have the collection URL {%- endcomment -%}
-      {%- for bc2_sibling_link in linklists[bc2_parent_list_handle].links -%}
-        {%- assign bc2_sibling_title_handleized = bc2_sibling_link.title | handle -%}
+      {%- assign bc2_parent_list_handle = lparents[forloop.index0] -%}
+      {%- capture bc2 -%}<a href="/collections/{{ bc2_list_handle }}" title="{{ bc2_list_title }}">{{ bc2_list_title }}</a>{%- endcapture -%}
+      {% if template contains 'product' %}
+      {% else %}
+      {%- comment -%} we have the handle of bc2's parent, so now we get the parent links, find where title matches parent title, then we have the collection URL{%- endcomment -%} 
+    
+      {%- comment -%}  Removing this block fixes things???
+  	{%- for bc2_sibling_link in linklists[bc2_parent_list_handle].links -%}
+        {%- assign bc2_sibling_title_handleized = bc2_sibling_link.title | handleize -%}
         {% if bc2_sibling_title_handleized == bc2_list_handle %}
-          {%- capture bc2 -%}{{ bc2_sibling_link.title | link_to: bc2_sibling_link.url, bc2_sibling_link.title }}{%- endcapture -%}
+          {%- capture bc2 -%}{{ bc2_list_title | link_to: bc2_sibling_link.url, bc2_sibling_link.title }}{%- endcapture -%}
           {% break %}
         {%- endif -%}
       {%- endfor -%}
+{%- endcomment -%}
+
       {% break %}
     {%- endif -%}
+    {% endif %}
   {%- endfor -%}
 {%- endif -%}
  
@@ -204,7 +208,7 @@
               matches parent title, then we have the collection URL
             {%- endcomment -%}
       {%- for bc1_sibling_link in linklists[bc1_parent_list_handle].links -%}
-        {%- assign bc1_sibling_title_handleized = bc1_sibling_link.title | handle -%}
+        {%- assign bc1_sibling_title_handleized = bc1_sibling_link.title | handleize -%}
         {% if bc1_sibling_title_handleized == bc1_list_handle %}
           {%- capture bc1 -%}{{ bc1_sibling_link.title | link_to: bc1_sibling_link.url, bc1_sibling_link.title }}{%- endcapture -%} 
           {% break %}
@@ -215,15 +219,15 @@
 {%- endif -%}
  
   {%- if bc1 -%}
-    <span aria-hidden="true">›</span>
+    <span data-ll="1" aria-hidden="true">›</span>
     {{ bc1 }}
   {%- endif -%}
   {%- if bc2 -%}
-    <span aria-hidden="true">›</span>
+    <span data-ll="2" aria-hidden="true">›</span>
     {{ bc2 }}
   {%- endif -%}
   {%- if bc3 -%}
-    <span aria-hidden="true">›</span>
+    <span data-ll="3" aria-hidden="true">›</span>
     {{ bc3 }}
   {%- endif -%}
 {%- if template contains 'product' -%}
